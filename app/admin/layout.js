@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation' // Import useRouter
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { 
   LayoutDashboard, 
@@ -12,7 +12,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  ChevronRight
+  ChevronRight,
+  Calendar // <--- Added Calendar Icon
 } from 'lucide-react'
 
 // 🍪 Helper to read cookies in the browser
@@ -27,7 +28,7 @@ function getCookie(name) {
 export default function AdminLayout({ children }) {
   const [isSidebarOpen, setSidebarOpen] = useState(false)
   const router = useRouter()
-  const [isAuthorized, setIsAuthorized] = useState(false) // Start blocked
+  const [isAuthorized, setIsAuthorized] = useState(false)
 
   // 👮 SECURITY CHECK
   useEffect(() => {
@@ -47,7 +48,6 @@ export default function AdminLayout({ children }) {
     return <div className="min-h-screen flex items-center justify-center bg-stone-50 text-stone-400">Verifying access...</div>
   }
 
-  // ... (Your Existing Layout Code below) ...
   return (
     <div className="min-h-screen bg-stone-50 flex font-sans text-stone-900">
       
@@ -84,7 +84,12 @@ export default function AdminLayout({ children }) {
           <NavItem href="/admin" icon={<LayoutDashboard size={20} />} label="Dashboard" />
           <NavItem href="/admin/orders" icon={<ShoppingBag size={20} />} label="Orders" />
           <NavItem href="/admin/products" icon={<Package size={20} />} label="Products" />
+          
+          {/* ✨ NEW WORKSHOPS LINK */}
+          <NavItem href="/admin/workshops" icon={<Calendar size={20} />} label="Workshops" />
+          
           <NavItem href="/admin/customers" icon={<Users size={20} />} label="Customers" />
+          
           <div className="pt-8 pb-2 px-4 text-xs font-semibold text-stone-500 uppercase tracking-wider">System</div>
           <NavItem href="/admin/settings" icon={<Settings size={20} />} label="Settings" />
         </nav>
@@ -93,7 +98,7 @@ export default function AdminLayout({ children }) {
           <button 
             // LOGOUT BUTTON
             onClick={() => {
-              document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;" // Clear cookie
+              document.cookie = "admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;" 
               router.push('/login')
             }}
             className="flex items-center gap-3 w-full p-3 rounded-lg hover:bg-white/5 transition-all group"

@@ -6,6 +6,18 @@ async function main() {
 
   // 1. Clean the database (Delete old data to avoid duplicates)
   // Note: We delete in order to avoid foreign key constraint errors
+  console.log('🧹 Cleaning database...')
+  
+  // Cleanup NEW Workshop models first (children first)
+  try {
+    await prisma.workshopRegistration.deleteMany()
+    await prisma.workshopSession.deleteMany()
+    await prisma.workshop.deleteMany()
+  } catch (e) {
+    console.log('Note: Workshop tables might not exist yet, skipping cleanup for them.')
+  }
+
+  // Cleanup Store models
   await prisma.orderItem.deleteMany()
   await prisma.order.deleteMany()
   await prisma.product.deleteMany()
@@ -31,7 +43,9 @@ async function main() {
     }
   })
 
-  const workshops = await prisma.category.create({
+  // Note: We keep the "Workshops" category for simple product listings if needed,
+  // even though we have a dedicated Workshop model now.
+  const workshopsCat = await prisma.category.create({
     data: {
       name: 'Workshops',
       slug: 'workshops',
@@ -41,8 +55,7 @@ async function main() {
 
   console.log('📁 Categories created.')
 
-  // 3. Create Products
-  // 3. Create Products with FIXED images
+  // 3. Create Products (Store Items)
   const products = [
     {
       name: 'Wabi-Sabi Matcha Bowl',
@@ -70,23 +83,57 @@ async function main() {
       stock: 8,
       images: ['https://images.unsplash.com/photo-1581783342308-f792ca11df53?q=80&w=800&auto=format&fit=crop'],
       categoryId: decor.id
-    },
-    {
-      name: 'Hand-Building Workshop',
-      slug: 'hand-building-workshop-jan',
-      description: 'A 2-hour session learning the basics of pinching and coiling. Includes all materials and firing.',
-      price: 1500,
-      stock: 20,
-      images: ['https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?q=80&w=800&auto=format&fit=crop'],
-      categoryId: workshops.id
     }
   ]
 
   for (const p of products) {
     await prisma.product.create({ data: p })
   }
-
   console.log(`📦 Added ${products.length} products.`)
+
+  // 4. Create WORKSHOPS (The New Model)
+  console.log('🔨 Creating Workshops...')
+  
+  const workshop1 = await prisma.workshop.create({
+    data: {
+      title: 'Intro to Wheel Throwing',
+      slug: 'intro-wheel-throwing',
+      description: 'Get your hands dirty in this comprehensive introduction to the potter\'s wheel. You will learn the basics of centering clay, opening, pulling walls, and shaping simple vessels. Perfect for complete beginners who want to experience the magic of making.',
+      price: 1500,
+      image: 'https://images.unsplash.com/photo-1565193566173-092e75df6543?q=80&w=1974&auto=format&fit=crop',
+      gallery: [
+        'https://images.unsplash.com/photo-1610701596007-11502861dcfa?q=80&w=1770',
+        'https://images.unsplash.com/photo-1578749556935-ef887c471986?q=80&w=1770'
+      ],
+      duration: '3 Hours',
+      maxStudents: 8,
+      location: 'Studio A, Surat',
+      language: 'English / Gujarati',
+      level: 'Beginner',
+      instructorName: 'Shivangi',
+      instructorRole: 'Lead Ceramist',
+      instructorImage: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1888',
+      status: 'ACTIVE',
+      // Create Sessions (Dates) directly here
+      sessions: {
+        create: [
+          {
+            date: new Date('2025-10-15T10:00:00Z'), // Future date 1
+            time: '10:00 AM',
+            spotsTotal: 8,
+            spotsBooked: 0
+          },
+          {
+            date: new Date('2025-10-22T14:00:00Z'), // Future date 2
+            time: '2:00 PM',
+            spotsTotal: 8,
+            spotsBooked: 2
+          }
+        ]
+      }
+    }
+  })
+
   console.log('✅ Seeding finished.')
 }
 
