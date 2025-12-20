@@ -102,3 +102,68 @@ model OrderItem {
   quantity  Int
   price     Float   
 }
+
+// --- WORKSHOP SECTION ---
+
+enum WorkshopStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Workshop {
+  id            String   @id @default(cuid())
+  title         String
+  slug          String   @unique
+  description   String
+  price         Float
+  image         String   // Main hero image
+  gallery       String[] // Array of image URLs for the gallery
+  
+  // Meta Details
+  duration      String   // e.g. "3 Hours"
+  maxStudents   Int
+  location      String   // e.g. "Studio A"
+  language      String   // e.g. "English / Japanese"
+  level         String   // e.g. "Beginner Friendly"
+  
+  // Instructor Info
+  instructorName  String
+  instructorRole  String
+  instructorImage String
+
+  status        WorkshopStatus @default(UPCOMING)
+  
+  // Relationships
+  sessions      WorkshopSession[]
+  
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Represents a specific date/time for the workshop (e.g., Oct 12 at 10 AM)
+model WorkshopSession {
+  id            String   @id @default(cuid())
+  date          DateTime 
+  time          String   // e.g. "10:00 AM"
+  spotsTotal    Int
+  spotsBooked   Int      @default(0)
+  
+  workshopId    String
+  workshop      Workshop @relation(fields: [workshopId], references: [id])
+  
+  registrations WorkshopRegistration[]
+}
+
+model WorkshopRegistration {
+  id            String   @id @default(cuid())
+  customerName  String
+  customerEmail String
+  amountPaid    Float
+  
+  sessionId     String
+  session       WorkshopSession @relation(fields: [sessionId], references: [id])
+  
+  createdAt     DateTime @default(now())
+}
