@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 
-export function middleware(request) {
+export function proxy(request) {
   // 1. Check if user is trying to access an /admin page
   if (request.nextUrl.pathname.startsWith('/admin')) {
     
