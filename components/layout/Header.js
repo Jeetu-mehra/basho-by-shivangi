@@ -48,9 +48,7 @@ if (pathname && pathname.startsWith('/admin')) {
         </div>
 
         {/* Logo */}
-        <Link href="/" className="font-serif text-2xl font-bold text-basho-earth tracking-tighter">
-          BASHO.
-        </Link>
+        <img src="/brand/logo-basho.png" className="h-8" />
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8">

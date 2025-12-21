@@ -1,3 +1,6 @@
+/* Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Lexend:wght@100..900&display=swap');
+
 @import "tailwindcss";
 
 @theme {
@@ -38,4 +41,27 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+}
+
+:root {
+  --brand-kuro-tsuchi: #442D1C;
+  --brand-iron-oxide: #652810;
+  --brand-toasted-hojicha: #8E5022;
+  --brand-ember-glow: #C85428;
+  --brand-shiro-suna: #EDD8B4;
+}
+.landing-page {
+  display: flex;
+}
+.landing-page h2 {
+  font-size: 2rem;
+  color: var(--brand-kuro-tsuchi);
+  font-family: Lexend;
+}
+.landing-page h2 + p {
+  font-family: Figtree;
+  color: red;
+}
+.landing-page>div {
+  font-size: 2rem;
 }
