@@ -1,0 +1,42 @@
+@font-face {
+  font-family: "Inter";
+  src: url(./inter-normal.woff2);
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Inter";
+  src: url(./inter-italic.woff2);
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Serif";
+  src: url(./noto-serif-normal.woff2);
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Noto Serif";
+  src: url(./noto-serif-italic.woff2);
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url(./figtree-normal.woff2);
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Figtree";
+  src: url(./figtree-italic.woff2);
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Lexend";
+  src: url(./lexend-normal.woff2);
+  font-style: normal;
+  font-display: swap;
+}

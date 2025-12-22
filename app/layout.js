@@ -1,10 +1,11 @@
-import { Inter, Noto_Serif_JP } from 'next/font/google';
+//import { Inter, Noto_Serif_JP } from 'next/font/google';
 import { ClerkProvider } from '@clerk/nextjs'
 import Header from '@/components/layout/Header'
 import { Toaster } from 'sonner' 
 import "../public/fonts/fonts.css";
-import './globals.css'
-
+import "../public/icons/material-symbols.css";
+import './globals.css';
+/*
 const inter = Inter({ 
   subsets: ['latin'],
   variable: '--font-inter',
@@ -17,6 +18,7 @@ const notoSerif = Noto_Serif_JP({
   variable: '--font-noto-serif',
   display: 'swap',
 })
+*/
 export const metadata = {
   title: 'Basho Pottery | Handcrafted Japanese Ceramics',
   description: 'Artisanal pottery by Shivangi.',
@@ -26,7 +28,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <ClerkProvider>
-      <html lang="en" className={`${inter.variable} ${notoSerif.variable}`}>
+      <html lang="en">
         <body className="antialiased font-sans">
           <Header />
           <main className="min-h-screen">
