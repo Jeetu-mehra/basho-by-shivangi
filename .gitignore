@@ -42,3 +42,5 @@ next-env.d.ts
 
 /app/generated/prisma
 git-cli.notes
+# clerk configuration (can include secrets)
+/.clerk/
