@@ -1,6 +1,3 @@
-/* Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&family=Lexend:wght@100..900&display=swap');
-
 @import "tailwindcss";
 
 @theme {
@@ -49,19 +46,125 @@ body {
   --brand-toasted-hojicha: #8E5022;
   --brand-ember-glow: #C85428;
   --brand-shiro-suna: #EDD8B4;
+  --bgcolor:  #fbfaf6;
+  --inter: "Inter";
+  --noto-serif: "Noto Serif";
+  --lexend: "Lexend";
+  --figtree: "Figtree";
 }
-.landing-page {
+
+main.landing-page {
+  padding: 2rem 1rem;
+}
+.landing-page * {
+  margin: 0;
+  padding: 0;
+}
+.landing-page .intro {
+  font-family: var(--inter);
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 4rem 2rem;
+  justify-content: space-evenly;
+  max-width: 70rem;
+  margin: 0 auto;
 }
-.landing-page h2 {
+.landing-page .culture,
+.landing-page .brand {
+  max-width: 30rem;
+}
+.landing-page .intro .heading {
+  /* background-color: aquamarine; */
+}
+.landing-page .intro .heading>h2 {
   font-size: 2rem;
+  font-family: var(--lexend);
+  color: var(--brand-iron-oxide);
+  /* background-color: yellow; */
+
+}
+.landing-page .intro .heading>p {
+  font-size: 1rem;
+  text-transform: uppercase;
   color: var(--brand-kuro-tsuchi);
-  font-family: Lexend;
+  font-weight: 500;
+  padding-bottom: 1rem;
 }
-.landing-page h2 + p {
-  font-family: Figtree;
-  color: red;
+.landing-page .intro .heading:not(:first-of-type) {
+  margin-top: 2rem;
 }
-.landing-page>div {
+.landing-page .intro .heading + p {
+  text-align: justify;
+}
+.landing-page .intro i {
+  font-style: normal;
+  color: var(--brand-ember-glow);
+}
+.landing-page .intro .brand {
+  background-color: var(--brand-shiro-suna);
+  padding: 1rem;
+  box-sizing: border-box;
+  border-radius: 1rem;
+}
+.landing-page .intro .brand-logo>img {
+  display: block;
+  width: 80%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  /* background-color: red; */
+  margin: 0 auto;
+  max-width: 16rem;
+}
+.landing-page .intro .brand-logo {
+  padding: 2rem 0;
+}
+.landing-page .intro .brand-philosophy {
+  background-color: var(--bgcolor);
+  padding: 1rem;
+  box-sizing: border-box;
+  border-radius: 1rem;
+  margin: 0 0 2rem;
+  text-align: justify;
+}
+.landing-page .intro .founder-pic>img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  /* background-color: red; */
+  
+  
+}
+.landing-page .intro .founder-pic {
+  border-radius: 1rem;
+  overflow: hidden;
+  max-width: 16rem;
+  margin: 0 auto;
+}
+
+.landing-page .separator {
+  font-family: var(--inter);
+  margin: 4rem auto;
+  text-align: center;
+  color: var(--brand-iron-oxide);
   font-size: 2rem;
+  text-decoration-line: underline;
+  text-decoration-color: var(--brand-iron-oxide);
+}
+.landing-page .collections > * {
+  background-color: var(--brand-shiro-suna);
+  border: 2px solid var(--brand-ember-glow);
+  padding: 2rem;
+  border-radius: 2rem;
+  height: 16rem;
+  
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
+  gap: 2rem;
+  
+  
 }
