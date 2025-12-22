@@ -1,41 +1,42 @@
-'use client'
-import { useCart } from '@/hooks/use-cart'
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import { ShoppingBag, Menu, X, User } from 'lucide-react' // Ensure lucide-react is installed
-import { Button } from '@/components/ui/Button'
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs'
+"use client";
+import { useCart } from "@/hooks/use-cart";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { ShoppingBag, Menu, X, User } from "lucide-react"; // Ensure lucide-react is installed
+import { Button } from "@/components/ui/Button";
+import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/nextjs";
 
 export default function Header() {
-    const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-    const cart = useCart()
-  const [isMounted, setIsMounted] = useState(false)
+  const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const cart = useCart();
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true)
-  }, [])
+    setIsMounted(true);
+  }, []);
   const navLinks = [
-    { href: '/products', label: 'Shop' },
-    { href: '/workshops', label: 'Workshops' },
-    { href: '/about', label: 'Our Story' },
-  ]
-if (pathname && pathname.startsWith('/api/admin')) {
-    return null
+    { href: "/products", label: "Shop" },
+    { href: "/workshops", label: "Workshops" },
+    { href: "/about", label: "Our Story" },
+    { href: "/media", label: "Testimonials" },
+    { href: "/connect", label: "Connect" },
+  ];
+  if (pathname && pathname.startsWith("/api/admin")) {
+    return null;
   }
-if (pathname && pathname.startsWith('/admin')) {
-    return null
+  if (pathname && pathname.startsWith("/admin")) {
+    return null;
   }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-stone-200 bg-white/80 backdrop-blur-md">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        
         {/* Mobile Menu Trigger */}
         <div className="md:hidden">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
@@ -53,8 +54,8 @@ if (pathname && pathname.startsWith('/admin')) {
         {/* Desktop Nav */}
         <nav className="hidden md:flex gap-8">
           {navLinks.map((link) => (
-            <Link 
-              key={link.href} 
+            <Link
+              key={link.href}
               href={link.href}
               className="text-sm font-medium text-stone-600 hover:text-basho-clay transition-colors"
             >
@@ -80,7 +81,7 @@ if (pathname && pathname.startsWith('/admin')) {
               </Button>
             </SignInButton>
           </SignedOut>
-          
+
           <SignedIn>
             <UserButton afterSignOutUrl="/" />
           </SignedIn>
@@ -92,8 +93,8 @@ if (pathname && pathname.startsWith('/admin')) {
         <div className="md:hidden absolute top-16 left-0 w-full h-[calc(100vh-4rem)] bg-basho-minimal p-6 flex flex-col gap-6 animate-fade-in">
           <nav className="flex flex-col gap-4">
             {navLinks.map((link) => (
-              <Link 
-                key={link.href} 
+              <Link
+                key={link.href}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="text-2xl font-serif text-basho-earth py-2 border-b border-basho-earth/10"
@@ -103,14 +104,14 @@ if (pathname && pathname.startsWith('/admin')) {
             ))}
           </nav>
           <div className="mt-4">
-             <SignedOut>
-                <SignInButton mode="modal">
-                  <Button className="w-full">Sign In</Button>
-                </SignInButton>
-             </SignedOut>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <Button className="w-full">Sign In</Button>
+              </SignInButton>
+            </SignedOut>
           </div>
         </div>
       )}
     </header>
-  )
+  );
 }
