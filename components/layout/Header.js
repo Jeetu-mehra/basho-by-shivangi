@@ -329,17 +329,9 @@ export default function Header() {
               className="fixed top-0 left-0 h-full w-80 bg-white shadow-2xl z-50 md:hidden"
             >
               {/* Menu Header */}
-              <div className="p-6 border-b border-[#EDD8B4]/30">
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8E5022] to-[#C85428] flex items-center justify-center">
-                      <span className="font-serif text-white text-lg">芭</span>
-                    </div>
-                    <div>
-                      <h1 className="font-serif text-xl text-[#442D1C]">Bashō</h1>
-                      <p className="text-xs text-[#8E5022]">手作り陶器</p>
-                    </div>
-                  </div>
+              <div className="p-6 border-b border-[#EDD8B4]/30" style={{"backgroundColor": "rd"}}>
+                <div className="flex items-center justify-between mb-4" style={{ "backgroundColor": "salon" }}>
+                  <img src="/brand/logo-basho.png" className="h-8" alt="brand-logo" />
                   <Button
                     variant="ghost"
                     size="icon"
@@ -348,7 +340,7 @@ export default function Header() {
                     <X className="h-5 w-5 text-[#442D1C]" />
                   </Button>
                 </div>
-                
+                 
                 {user && (
                   <div className="flex items-center gap-3 p-4 rounded-2xl bg-[#EDD8B4]/10 mb-4">
                     {user.photoURL ? (

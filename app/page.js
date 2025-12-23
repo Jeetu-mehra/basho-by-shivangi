@@ -115,10 +115,10 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-br from-[#FDFBF7] via-[#FDFBF7] to-[#EDD8B4]/30" />
           
           {/* Floating Particles */}
-          {[...Array(15)].map((_, i) => (
+          {[...Array(21)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-1 h-1 rounded-full bg-[#8E5022]/20"
+              className="absolute w-5 h-5 z-10 rounded-full bg-[#8E5022]/20"
               initial={{ x: Math.random() * 100 + 'vw', y: Math.random() * 100 + 'vh' }}
               animate={{
                 x: [null, Math.random() * 100 + 'vw'],
@@ -138,7 +138,7 @@ export default function LandingPage() {
               style={{ scale: heroScale, opacity: heroOpacity }}
             >
               <img 
-                src="\images\Landing Page Hero.jpg" 
+                src="/images/others/landing-page-hero.jpg" 
                 alt="Basho Ceramics" 
                 className="w-full h-full object-cover"
                 style={{ objectPosition: 'center 30%' }}
@@ -155,8 +155,8 @@ export default function LandingPage() {
           variants={staggerContainer}
           className="relative z-10 text-center px-4 max-w-6xl mx-auto text-white"
         >
-          <motion.div variants={fadeInUp} className="mb-8">
-            <Sparkles className="w-8 h-8 mx-auto mb-4 text-[#EDD8B4]" />
+          <motion.div variants={fadeInUp} className="mb-8 pt-8">
+            {/* <Sparkles className="w-8 h-8 mx-auto mb-4 text-[#EDD8B4]" /> */}
             <p className="font-sans text-sm md:text-base tracking-[0.3em] uppercase mb-4 opacity-95">
               Handcrafted Japanese Ceramics
             </p>
