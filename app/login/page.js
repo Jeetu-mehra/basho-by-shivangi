@@ -1,84 +1,107 @@
 "use client";
 import { useState } from "react";
-import { GoogleAuthProvider, signInWithPopup } from "firebase/auth";
-import { auth } from "@/lib/firebase"; 
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
-export default function LoginPage() {
-  const [error, setError] = useState("");
+function LoginForm() {
+  const [step, setStep] = useState("email"); // 'email' or 'otp'
+  const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectUrl = searchParams.get("redirect") || "/admin/dashboard";
 
-  const handleGoogleLogin = async () => {
-    setError("");
+  async function handleSendOtp(e) {
+    e.preventDefault();
     setLoading(true);
-    const provider = new GoogleAuthProvider();
+    const res = await fetch("/api/auth/send-otp", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    });
+    setLoading(false);
+    if (res.ok) setStep("otp");
+    else alert("Failed to send OTP");
+  }
+
+  async function handleVerifyOtp(e) {
+    e.preventDefault();
+    setLoading(true);
+    const res = await fetch("/api/auth/verify-otp", {
+      method: "POST",
+      body: JSON.stringify({ email, otp }),
+    });
     
-    try {
-      await signInWithPopup(auth, provider);
-      // Login successful, redirect to admin dashboard
-      router.push("/admin/dashboard");
-    } catch (err) {
-      console.error(err);
-      setError("Google sign-in failed. Please try again.");
+    if (res.ok) {
+      router.push(redirectUrl);
+      router.refresh();
+    } else {
+      alert("Invalid OTP");
       setLoading(false);
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-4">
-      {/* Responsive Container:
-        - w-full: Takes full width available
-        - max-w-sm: Stops growing after small size (approx 384px), keeping it card-like on desktop
-        - mx-auto: Centers it if needed
-      */}
-      <div className="w-full max-w-sm bg-white rounded-lg shadow-md text-center p-6 sm:p-8">
-        
-        {/* Basho Logo */}
-        <img src="/brand/logo-basho.png" alt="Basho" className="h-8 sm:h-10 mx-auto mb-6" />
-        
-        <h1 className="mb-2 text-xl sm:text-2xl font-bold text-gray-800">Welcome Back</h1>
-        <p className="text-stone-500 mb-8 text-sm sm:text-base">Sign in to manage Basho</p>
+    <div className="flex min-h-screen items-center justify-center bg-[#FDFBF7] px-4">
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-lg border border-[#EDD8B4]/50">
+        <h1 className="text-2xl font-serif text-[#442D1C] mb-2 text-center">
+          {step === "email" ? "Sign In" : "Verify OTP"}
+        </h1>
+        <p className="text-[#8E5022] text-center mb-8 text-sm">
+          {step === "email" ? "Enter your email to continue" : `Code sent to ${email}`}
+        </p>
 
-        {error && (
-          <div className="mb-4 text-sm text-red-500 bg-red-50 p-2 rounded">
-            {error}
-          </div>
+        {step === "email" ? (
+          <form onSubmit={handleSendOtp} className="space-y-4">
+            <input
+              type="email"
+              placeholder="name@example.com"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]"
+            />
+            <button
+              disabled={loading}
+              className="w-full bg-[#442D1C] text-white py-3 rounded-lg hover:bg-[#C85428] transition-colors disabled:opacity-50"
+            >
+              {loading ? "Sending..." : "Send OTP"}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-4">
+            <input
+              type="text"
+              placeholder="Enter 6-digit code"
+              required
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="w-full p-3 border border-[#EDD8B4] rounded-lg text-center text-2xl tracking-widest focus:outline-none focus:border-[#C85428]"
+            />
+            <button
+              disabled={loading}
+              className="w-full bg-[#442D1C] text-white py-3 rounded-lg hover:bg-[#C85428] transition-colors disabled:opacity-50"
+            >
+              {loading ? "Verifying..." : "Verify & Login"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setStep("email")}
+              className="w-full text-sm text-[#8E5022] hover:underline"
+            >
+              Change Email
+            </button>
+          </form>
         )}
-
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-3 bg-white text-gray-700 border border-gray-300 py-3 rounded-lg hover:bg-gray-50 transition shadow-sm font-medium text-sm sm:text-base"
-        >
-          {loading ? (
-             <span>Signing in...</span>
-          ) : (
-            <>
-              {/* Google Icon SVG */}
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="currentColor"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"
-                />
-                <path
-                  fill="currentColor"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Sign in with Google
-            </>
-          )}
-        </button>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }
