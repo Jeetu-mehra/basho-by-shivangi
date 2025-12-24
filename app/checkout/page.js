@@ -1,146 +1,272 @@
-'use client'
+"use client";
 
-import { useCart } from '@/hooks/use-cart'
-import { Button } from '@/components/ui/Button'
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { toast } from 'sonner'
-import Script from 'next/script' // <-- Import Script
+import { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthProvider";
+import { loadRazorpayScript } from "@/lib/razorpay";
+import { Button } from "@/components/ui/Button";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/hooks/use-cart"; 
+import { Truck, ShieldCheck, MapPin } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function CheckoutPage() {
-  const cart = useCart()
-  const router = useRouter()
-  const [isMounted, setIsMounted] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+  const cart = useCart(); 
 
+  // --- Form State ---
   const [formData, setFormData] = useState({
-    name: '', email: '', address: '', city: '', postalCode: '', phone: ''
-  })
+    name: user?.displayName || "",
+    email: user?.email || "",
+    phone: "",
+    gst: "",
+    street: "",
+    city: "",
+    state: "",
+    pincode: ""
+  });
 
-  useEffect(() => { setIsMounted(true) }, [])
+  // --- Cost Calculation Logic ---
+  // Mock logic: Assume each item is 0.5kg. Rate: ₹100 for first kg, ₹50 per extra kg.
+  const totalWeight = cart.items.length * 0.5; 
+  const shippingCost = totalWeight <= 0 ? 0 : totalWeight <= 1 ? 100 : 100 + ((totalWeight - 1) * 50);
+  
+  // Cart Subtotal (Assuming cart.items has 'price' and 'quantity')
+  const subtotal = cart.items.reduce((sum, item) => sum + (Number(item.price) * (item.quantity || 1)), 0);
+  const gstAmount = subtotal * 0.05; // Assuming 5% GST on ceramics
+  const totalAmount = subtotal + gstAmount + shippingCost;
 
-  // Kick out empty cart
   useEffect(() => {
-    if (isMounted && cart.items.length === 0) router.push('/cart')
-  }, [isMounted, cart.items, router])
-
-  if (!isMounted) return null
-
-  const total = cart.items.reduce((sum, item) => sum + Number(item.price), 0)
+    if(user) {
+        setFormData(prev => ({...prev, name: user.displayName, email: user.email}));
+    }
+  }, [user]);
 
   const handleInputChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-  // 1. Triggered when user clicks "Pay Now"
-  const onCheckout = async (e) => {
-    e.preventDefault()
-    setLoading(true)
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      alert("Please login to continue");
+      return;
+    }
+
+    setLoading(true);
 
     try {
-      // Step A: Create Order on Razorpay
-      const response = await fetch('/api/razorpay', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total })
-      })
-      const orderData = await response.json()
+      // 1. Sync User & Address to Database
+      const syncRes = await fetch("/api/user/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: user.email,
+          name: formData.name,
+          phone: formData.phone,
+          gstNumber: formData.gst,
+          address: {
+            street: formData.street,
+            city: formData.city,
+            state: formData.state,
+            pincode: formData.pincode
+          }
+        }),
+      });
 
-      // Step B: Define Options for the Payment Modal
+      if (!syncRes.ok) throw new Error("Failed to save address");
+
+      // 2. Load Razorpay
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded) throw new Error("Razorpay SDK failed to load");
+
+      // 3. Create Order
+      const res = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: totalAmount }),
+      });
+      const order = await res.json();
+      if (!order.id) throw new Error("Order creation failed");
+
+      // 4. Open Payment Modal
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID, // Use public key here
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: "Basho Pottery",
-        description: "Handcrafted Clayware",
-        order_id: orderData.id, // This is the ID we just got
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: order.amount,
+        currency: order.currency,
+        name: "Bashō Ceramics",
+        description: "Artisan Pottery Checkout",
+        image: "/brand/logo-basho.png",
+        order_id: order.id,
         handler: async function (response) {
-          // Step C: Payment Success! Now save to DB
-          await saveOrder(response.razorpay_payment_id)
+          // Verify Payment
+          const verifyRes = await fetch("/api/razorpay", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_signature: response.razorpay_signature,
+            }),
+          });
+          const verifyData = await verifyRes.json();
+          if (verifyData.success) {
+             cart.removeAll(); // Clear cart
+             router.push("/success"); 
+          } else {
+             alert("Payment verification failed!");
+          }
         },
         prefill: {
           name: formData.name,
           email: formData.email,
-          contact: formData.phone
+          contact: formData.phone,
         },
-        theme: {
-          color: "#8B4513" // Basho Clay Color
-        }
-      }
+        theme: { color: "#C85428" },
+      };
 
-      // Step D: Open the Modal
-      const paymentObject = new window.Razorpay(options)
-      paymentObject.open()
-      setLoading(false) // Stop loading state so user can interact
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
 
     } catch (error) {
-      console.error(error)
-      toast.error("Payment initialization failed")
-      setLoading(false)
+      console.error(error);
+      alert("Something went wrong: " + error.message);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  // 2. Save Order to Database (Called after payment success)
-  const saveOrder = async (paymentId) => {
-    try {
-      const response = await fetch('/api/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          items: cart.items,
-          customerDetails: formData,
-          paymentId: paymentId // We attach the Payment ID now!
-        })
-      })
-
-      if (!response.ok) throw new Error('Failed to save order')
-      
-      const data = await response.json()
-      
-      cart.removeAll()
-      router.push(`/success?orderId=${data.orderId}`)
-      toast.success("Payment Successful!")
-
-    } catch (error) {
-      toast.error("Payment successful but order saving failed. Contact support.")
-    }
-  }
+  };
 
   return (
-    <div className="container mx-auto px-4 py-12 max-w-2xl">
-      {/* Load Razorpay Script */}
-      <Script src="https://checkout.razorpay.com/v1/checkout.js" />
-
-      <h1 className="text-3xl font-serif text-basho-earth mb-8">Checkout</h1>
-      
-      <div className="bg-stone-50 p-6 rounded-lg border border-stone-100">
-        <h2 className="font-medium text-lg mb-4">Shipping Details</h2>
+    <div className="min-h-screen pt-28 pb-12 px-4 md:px-8 bg-[#FDFBF7]">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
         
-        <form onSubmit={onCheckout} className="space-y-4">
-          {/* ... Inputs remain the same ... */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input required name="name" placeholder="Full Name" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
-            <input required name="phone" placeholder="Phone Number" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
-          </div>
-          <input required name="email" type="email" placeholder="Email" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
-          <input required name="address" placeholder="Address" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
-          <div className="grid grid-cols-2 gap-4">
-            <input required name="city" placeholder="City" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
-            <input required name="postalCode" placeholder="Postal Code" onChange={handleInputChange} className="w-full p-3 border border-stone-200 rounded"/>
+        {/* --- LEFT COLUMN: Shipping Form --- */}
+        <div className="lg:col-span-7 space-y-8">
+          <div className="flex items-center gap-3 mb-6">
+            <h1 className="text-3xl font-serif text-[#442D1C]">Checkout</h1>
+            <div className="h-px flex-1 bg-[#EDD8B4]/50"></div>
           </div>
 
-          <div className="border-t border-stone-200 pt-4 mt-6">
-            <div className="flex justify-between items-center mb-6">
-              <span className="text-stone-600">Total Amount</span>
-              <span className="text-xl font-bold text-basho-earth">₹{total.toLocaleString('en-IN')}</span>
-            </div>
-            
-            <Button type="submit" disabled={loading} className="w-full bg-basho-earth hover:bg-basho-clay text-white py-4 text-lg">
-              {loading ? 'Processing...' : 'Pay with Razorpay'}
-            </Button>
-          </div>
-        </form>
+          <form id="checkout-form" onSubmit={handlePayment} className="space-y-6">
+            {/* Contact Info */}
+            <section className="bg-white p-6 rounded-xl shadow-sm border border-[#EDD8B4]/30">
+              <h2 className="text-lg font-medium text-[#442D1C] mb-4 flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-[#C85428]" /> Contact Details
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                   <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">Email</label>
+                   <input type="email" name="email" value={formData.email} disabled className="w-full mt-1 p-3 bg-gray-50 border border-gray-200 rounded-lg text-gray-500 cursor-not-allowed" />
+                </div>
+                <div>
+                   <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">Full Name</label>
+                   <input required type="text" name="name" value={formData.name} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428] transition-colors" />
+                </div>
+                <div>
+                   <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">Phone Number</label>
+                   <input required type="tel" name="phone" placeholder="+91 98765 43210" value={formData.phone} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428] transition-colors" />
+                </div>
+              </div>
+            </section>
+
+            {/* Address Info */}
+            <section className="bg-white p-6 rounded-xl shadow-sm border border-[#EDD8B4]/30">
+              <h2 className="text-lg font-medium text-[#442D1C] mb-4 flex items-center gap-2">
+                <MapPin className="w-5 h-5 text-[#C85428]" /> Shipping Address
+              </h2>
+              <div className="space-y-4">
+                <div>
+                   <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">Street Address</label>
+                   <input required type="text" name="street" placeholder="Flat / House No / Street" value={formData.street} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">City</label>
+                    <input required type="text" name="city" value={formData.city} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">Pincode</label>
+                    <input required type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]" />
+                  </div>
+                </div>
+                <div>
+                   <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">State</label>
+                   <input required type="text" name="state" value={formData.state} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]" />
+                </div>
+              </div>
+            </section>
+
+            {/* Optional GST */}
+            <section className="bg-white p-6 rounded-xl shadow-sm border border-[#EDD8B4]/30">
+              <h2 className="text-lg font-medium text-[#442D1C] mb-4">Tax Invoice (Optional)</h2>
+              <div>
+                 <label className="text-xs text-[#8E5022] font-semibold uppercase tracking-wider">GST Number</label>
+                 <input type="text" name="gst" placeholder="GSTIN (Optional)" value={formData.gst} onChange={handleInputChange} className="w-full mt-1 p-3 bg-[#FDFBF7] border border-[#EDD8B4] rounded-lg focus:outline-none focus:border-[#C85428]" />
+              </div>
+            </section>
+          </form>
+        </div>
+
+        {/* --- RIGHT COLUMN: Order Summary --- */}
+        <div className="lg:col-span-5">
+           <div className="sticky top-28 space-y-6">
+             <div className="bg-[#442D1C] text-[#FDFBF7] p-6 rounded-xl shadow-xl">
+               <h3 className="font-serif text-2xl mb-6">Order Summary</h3>
+               
+               {/* Cart Items Preview */}
+               <div className="space-y-4 mb-6 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
+                 {cart.items.map((item) => (
+                   <div key={item.id} className="flex justify-between items-start text-sm">
+                     <div className="text-[#EDD8B4] font-medium">
+                       {item.name} <span className="text-white/50">x {item.quantity || 1}</span>
+                     </div>
+                     <div className="text-white">₹{item.price * (item.quantity || 1)}</div>
+                   </div>
+                 ))}
+               </div>
+
+               <div className="h-px bg-white/10 my-4"></div>
+
+               {/* Cost Breakdown */}
+               <div className="space-y-3 text-sm">
+                 <div className="flex justify-between text-[#EDD8B4]">
+                   <span>Subtotal</span>
+                   <span>₹{subtotal.toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between text-[#EDD8B4]">
+                   <span>GST (5%)</span>
+                   <span>₹{gstAmount.toFixed(2)}</span>
+                 </div>
+                 <div className="flex justify-between text-[#EDD8B4]">
+                   <span className="flex items-center gap-2"><Truck className="w-4 h-4"/> Shipping</span>
+                   <span>{shippingCost === 0 ? "Free" : `₹${shippingCost.toFixed(2)}`}</span>
+                 </div>
+               </div>
+
+               <div className="h-px bg-white/20 my-6"></div>
+
+               <div className="flex justify-between items-end mb-8">
+                 <span className="text-lg font-medium text-[#EDD8B4]">Total to Pay</span>
+                 <span className="text-3xl font-serif text-white">₹{totalAmount.toFixed(2)}</span>
+               </div>
+
+               <Button 
+                 onClick={() => document.getElementById("checkout-form").requestSubmit()} 
+                 disabled={loading || cart.items.length === 0}
+                 className="w-full bg-[#C85428] hover:bg-[#A03D1A] text-white py-6 text-lg rounded-lg shadow-lg font-medium transition-all transform hover:scale-[1.02]"
+               >
+                 {loading ? "Processing Securely..." : `Pay ₹${totalAmount.toFixed(2)}`}
+               </Button>
+
+               <div className="mt-4 flex items-center justify-center gap-2 text-xs text-white/40">
+                  <ShieldCheck className="w-3 h-3" />
+                  <span>Secure SSL Encrypted Payment</span>
+               </div>
+             </div>
+           </div>
+        </div>
       </div>
     </div>
-  )
+  );
 }

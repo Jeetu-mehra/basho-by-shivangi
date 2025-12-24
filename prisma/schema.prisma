@@ -24,18 +24,46 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum WorkshopStatus {
+  UPCOMING
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
 // --- Models ---
+
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String   @unique // Matches Clerk Authentication ID
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   name      String?
-  role      Role     @default(CUSTOMER)
+  phone     String?   // New: For checkout contact
+  gstNumber String?   // New: Optional GST for B2B
+  role      Role      @default(CUSTOMER)
   
+  // --- OTP Fields ---
+  otp           String?   // Stores the 6-digit code
+  otpExpiresAt  DateTime? // When the code expires (e.g., 5 mins)
+
+  // Relations
+  addresses Address[] // New: Saved addresses
   orders    Order[]
   
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  street    String
+  city      String
+  state     String
+  pincode   String
+  country   String   @default("India")
+  isDefault Boolean  @default(false)
 }
 
 model Category {
@@ -48,22 +76,22 @@ model Category {
 }
 
 model Product {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   name        String
-  slug        String   @unique
+  slug        String      @unique
   description String
   price       Float
-  stock       Int      @default(0)
-  images      String[] // Array of image URLs
-  isFeatured  Boolean  @default(false)
+  stock       Int         @default(0)
+  images      String[]
+  isFeatured  Boolean     @default(false)
   
   categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
+  category    Category    @relation(fields: [categoryId], references: [id])
   
   orderItems  OrderItem[]
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
   @@index([categoryId])
   @@index([slug])
@@ -71,18 +99,24 @@ model Product {
 
 model Order {
   id              String      @id @default(cuid())
-  orderNumber     String      @unique
+  orderNumber     String?     @unique // Optional initially, generated after payment
   
-  userId          String?     
+  userId          String?
   user            User?       @relation(fields: [userId], references: [id])
   
-  customerName    String
-  customerEmail   String
-  address         Json        
+  // Snapshot details at time of order
+  customerName    String?     // Made optional to support guest checkout initially
+  customerEmail   String?
+  address         Json        // Snapshot of shipping address
   
+  // Costs
   total           Float
+  shippingCost    Float       @default(0) // New: Track shipping separately
+  
   status          OrderStatus @default(PENDING)
   
+  // Payment Details
+  razorpayOrderId String?     // New: For Razorpay tracking
   paymentId       String?
   
   items           OrderItem[]
@@ -100,64 +134,53 @@ model OrderItem {
   product   Product @relation(fields: [productId], references: [id])
   
   quantity  Int
-  price     Float   
+  price     Float   // Price at the time of purchase
 }
 
-// --- WORKSHOP SECTION ---
-
-enum WorkshopStatus {
-  UPCOMING
-  ACTIVE
-  COMPLETED
-  CANCELLED
-}
+// --- WORKSHOP SECTION (Kept Exactly as is) ---
 
 model Workshop {
-  id            String   @id @default(cuid())
-  title         String
-  slug          String   @unique
-  description   String
-  price         Float
-  image         String   // Main hero image
-  gallery       String[] // Array of image URLs for the gallery
+  id              String    @id @default(cuid())
+  title           String
+  slug            String    @unique
+  description     String
+  price           Float
+  image           String
+  gallery         String[]
   
-  // Meta Details
-  duration      String   // e.g. "3 Hours"
-  maxStudents   Int
-  location      String   // e.g. "Studio A"
-  language      String   // e.g. "English / Japanese"
-  level         String   // e.g. "Beginner Friendly"
+  duration        String
+  maxStudents     Int
+  location        String
+  language        String
+  level           String
   
-  // Instructor Info
   instructorName  String
   instructorRole  String
   instructorImage String
 
-  status        WorkshopStatus @default(UPCOMING)
+  status          WorkshopStatus @default(UPCOMING)
   
-  // Relationships
-  sessions      WorkshopSession[]
+  sessions        WorkshopSession[]
   
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
-// Represents a specific date/time for the workshop (e.g., Oct 12 at 10 AM)
 model WorkshopSession {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   date          DateTime 
-  time          String   // e.g. "10:00 AM"
+  time          String
   spotsTotal    Int
-  spotsBooked   Int      @default(0)
+  spotsBooked   Int       @default(0)
   
   workshopId    String
-  workshop      Workshop @relation(fields: [workshopId], references: [id])
+  workshop      Workshop  @relation(fields: [workshopId], references: [id])
   
   registrations WorkshopRegistration[]
 }
 
 model WorkshopRegistration {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   customerName  String
   customerEmail String
   amountPaid    Float
